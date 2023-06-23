@@ -1,0 +1,28 @@
+{
+  "name": "netbrothers-gmbh/nb-feed",
+  "description": "Get RSS-Feeds and save to json",
+  "keywords": ["rss"],
+  "type": "library",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Stefan Wessel",
+      "email": "info@netbrothers.de"
+    },
+    {
+      "name": "Thilo Ratnaweera",
+      "email": "info@netbrothers.de"
+    }
+  ],
+  "require": {
+    "php": ">=8.0",
+    "ext-curl": "*",
+    "ext-json": "*",
+    "ext-simplexml": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "NetBrothers\\NbFeed\\": "src/"
+    }
+  }
+}
