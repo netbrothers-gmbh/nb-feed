@@ -1,9 +1,9 @@
 name: NbFeed Build Workflow
 run-name: Build NbFeed 🚧
 on: 
- push:
-   branches:
-     - main
+  push:
+    branches:
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,3 +19,8 @@ jobs:
           configuration: phpstan.dist.neon
           php_version: "8.1"
           php_extensions: curl json simplexml
+      - name: Run PHP Coding Standards Fixer
+        run: ./vendor/bin/php-cs-fixer fix
+          --dry-run
+          --diff
+          --using-cache=no
