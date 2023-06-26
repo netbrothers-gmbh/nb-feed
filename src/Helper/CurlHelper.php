@@ -8,6 +8,8 @@
 
 namespace NetBrothers\NbFeed\Helper;
 
+use Exception;
+
 /**
  * Class CurlHelper
  * @package NetBrothers\NbFeed\Helper
@@ -24,12 +26,21 @@ class CurlHelper
     public static function getFeedWithCurl(string $feedUrl, string $file): void
     {
         $ch = curl_init($feedUrl);
-        $fp = fopen($file, "w");
+        if ($ch === false) {
+            throw new Exception('cURL error: Unable to create handle.');
+        }
+        $fp = fopen($file, 'w');
+        if ($fp === false) {
+            throw new Exception(sprintf(
+                'I/O error: Unable to create file handle for %s.',
+                $file
+            ));
+        }
         curl_setopt($ch, CURLOPT_FILE, $fp);
         curl_setopt($ch, CURLOPT_HEADER, 0);
         curl_exec($ch);
-        if(curl_error($ch)) {
-            throw new \Exception('Curl error: ' . curl_error($ch));
+        if (curl_error($ch)) {
+            throw new Exception('cURL error: ' . curl_error($ch));
         }
         curl_close($ch);
         fclose($fp);

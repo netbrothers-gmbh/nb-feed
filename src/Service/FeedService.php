@@ -7,8 +7,11 @@
  */
 
 namespace NetBrothers\NbFeed\Service;
+
+use Exception;
 use NetBrothers\NbFeed\Helper\StorageHelper;
 use NetBrothers\NbFeed\Helper\CurlHelper;
+use SimpleXMLElement;
 
 /**
  * Class FeedService
@@ -29,13 +32,25 @@ class FeedService
      *
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
-     * @return array
-     * @throws \Exception
+     * @return array<int, array<string, mixed>>
+     * @throws Exception thrown on parse errors
      */
     public function getFeed(string $feedUrl = 'https://www.heise.de/security/rss/alert-news.rdf', bool $useCache = true): array
     {
         $feedFile = $this->setFeed($feedUrl, $useCache);
-        return json_decode(file_get_contents($feedFile));
+        $parseErrorMsg = sprintf(
+            'FeedService error: Unable to parse contents of %s.',
+            $feedFile
+        );
+        $feedContent = file_get_contents($feedFile);
+        if ($feedContent === false) {
+            throw new Exception($parseErrorMsg);
+        }
+        $result = json_decode($feedContent, true);
+        if (!is_array($result)) {
+            throw new Exception($parseErrorMsg);
+        }
+        return $result;
     }
 
     /** get Feed from Server and save
@@ -43,7 +58,7 @@ class FeedService
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
      * @return string Json file with content
-     * @throws \Exception
+     * @throws Exception thrown on parse errors
      */
     public function setFeed(string $feedUrl = 'https://www.heise.de/security/rss/alert-news.rdf', bool $useCache = true): string
     {
@@ -59,7 +74,7 @@ class FeedService
     /**
      * @param string $feedUrl
      * @return void
-     * @throws \RuntimeException | \Exception
+     * @throws \RuntimeException | Exception
      */
     private function saveFeedFromExtern(string $feedUrl): void
     {
@@ -75,15 +90,26 @@ class FeedService
             $json = json_encode($output);
             StorageHelper::removeFile($oldFile);
             file_put_contents($oldFile, $json);
-        } catch (\Exception $exception) {
+        } catch (Exception $exception) {
             throw new \RuntimeException('Cannot save response', 500, $exception);
         }
     }
 
+    /**
+     * @param string $scrFile 
+     * @return array<int, array<string, mixed>>
+     * @throws Exception thrown on parse errors
+     */
     private function formatFeed(string $scrFile): array
     {
         $output = [];
         $xml = simplexml_load_file($scrFile);
+        if ($xml === false) {
+            throw new Exception(sprintf(
+                'FeedService error: Unable to parse XML contents of %s.',
+                $scrFile
+            ));
+        }
         $entries = $xml->channel->item;
         $counter = 0;
         foreach($entries as $root) {
@@ -98,7 +124,11 @@ class FeedService
         return $output;
     }
 
-    private function formatXmlEntry(\SimpleXMLElement $element): array
+    /**
+     * @param SimpleXMLElement $element 
+     * @return array<string, mixed>
+     */
+    private function formatXmlEntry(SimpleXMLElement $element): array
     {
         $output = [
             'title' => (string) $element->title,
