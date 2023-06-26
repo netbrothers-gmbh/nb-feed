@@ -1,4 +1,5 @@
 <?php
+
 /**
  * NbFeed
  *
@@ -14,7 +15,6 @@ namespace NetBrothers\NbFeed\Helper;
  */
 class StorageHelper
 {
-
     /**
      * @param string $path
      * @return string
@@ -24,7 +24,8 @@ class StorageHelper
     {
         if (!is_dir($path) && !mkdir($path, 0777, true)) {
             throw new \RuntimeException(sprintf('Cannot create %s', $path));
-        } elseif (!(is_writable($path) && is_readable($path))) {
+        }
+        if (!(is_writable($path) && is_readable($path))) {
             throw new \RuntimeException(sprintf('Check permissions for writing and/or reading in %s', $path));
         }
         return (true !== str_ends_with($path, "/")) ? $path . "/" : $path;

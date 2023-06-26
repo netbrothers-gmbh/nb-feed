@@ -1,4 +1,5 @@
 <?php
+
 /**
  * NbFeed
  *
@@ -33,7 +34,6 @@ $configService->setStoragePath(__DIR__ . '/../tmp');
 $configService->setFeedFileName('heise-security');
 $configService->setCacheMaxAge(300);
 
-
 /**
  * Now using the logic
  */
@@ -49,6 +49,3 @@ print PHP_EOL;
 var_dump($feedArray);
 print PHP_EOL;
 unset($feedArray);
-
-
-

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * NbFeed
  *
@@ -19,14 +20,12 @@ use SimpleXMLElement;
  */
 class FeedService
 {
-
     private ConfigService $configService;
 
     public function __construct(ConfigService $configService)
     {
         $this->configService = $configService;
     }
-
 
     /** get Feed as array
      *
@@ -35,7 +34,7 @@ class FeedService
      * @return array<int, array<string, mixed>>
      * @throws Exception thrown on parse errors
      */
-    public function getFeed(string $feedUrl = 'https://www.heise.de/security/rss/alert-news.rdf', bool $useCache = true): array
+    public function getFeed(string $feedUrl, bool $useCache = true): array
     {
         $feedFile = $this->setFeed($feedUrl, $useCache);
         $parseErrorMsg = sprintf(
@@ -60,7 +59,7 @@ class FeedService
      * @return string Json file with content
      * @throws Exception thrown on parse errors
      */
-    public function setFeed(string $feedUrl = 'https://www.heise.de/security/rss/alert-news.rdf', bool $useCache = true): string
+    public function setFeed(string $feedUrl, bool $useCache = true): string
     {
         $feedFile = $this->configService->getStoragePath() . $this->configService->getFeedFileName();
         if (true !== $useCache) {
@@ -96,7 +95,7 @@ class FeedService
     }
 
     /**
-     * @param string $scrFile 
+     * @param string $scrFile
      * @return array<int, array<string, mixed>>
      * @throws Exception thrown on parse errors
      */
@@ -125,7 +124,7 @@ class FeedService
     }
 
     /**
-     * @param SimpleXMLElement $element 
+     * @param SimpleXMLElement $element
      * @return array<string, mixed>
      */
     private function formatXmlEntry(SimpleXMLElement $element): array

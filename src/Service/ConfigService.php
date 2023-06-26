@@ -1,4 +1,5 @@
 <?php
+
 /**
  * NbFeed
  *
@@ -7,14 +8,15 @@
  */
 
 namespace NetBrothers\NbFeed\Service;
+
 use NetBrothers\NbFeed\Helper\StorageHelper;
+
 /**
  * Class ConfigService
  * @package NetBrothers\NbFeed\Service
  */
 class ConfigService
 {
-
     /** How many items to save
      *
      * set to 0 to save all
@@ -30,7 +32,6 @@ class ConfigService
      * @var int Seconds
      */
     private int $cacheMaxAge = 1800;
-
 
     /** Storage-Path for saving files
      *
@@ -107,5 +108,4 @@ class ConfigService
     {
         $this->feedFileName = $feedFileName;
     }
-
 }
