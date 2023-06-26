@@ -1,0 +1,21 @@
+name: NbFeed Build Workflow
+run-name: Build NbFeed 🚧
+on: 
+ push:
+   branches:
+     - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: "8.1"
+      - name: Run PHPStan
+        uses: php-actions/phpstan@v3
+        with:
+          configuration: phpstan.dist.neon
+          php_version: "8.1"
+          php_extensions: curl json simplexml
