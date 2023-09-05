@@ -36,7 +36,7 @@ class FeedService
      */
     public function getFeed(string $feedUrl, bool $useCache = true): array
     {
-        $feedFile = $this->setFeed($feedUrl, $useCache);
+        $feedFile = $this->writeFeedToDisk($feedUrl, $useCache);
         $parseErrorMsg = sprintf(
             'FeedService error: Unable to parse contents of %s.',
             $feedFile
@@ -56,12 +56,12 @@ class FeedService
      *
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
-     * @return string Json file with content
+     * @return string file path of the JSON file with the new content
      * @throws Exception thrown on parse errors
      */
-    public function setFeed(string $feedUrl, bool $useCache = true): string
+    public function writeFeedToDisk(string $feedUrl, bool $useCache = true): string
     {
-        $feedFile = $this->configService->getStoragePath() . $this->configService->getFeedFileName();
+        $feedFile = $this->configService->getStoragePath() . $this->configService->getFeedFileName() . '.json';
         if (true !== $useCache) {
             $this->saveFeedFromExtern($feedUrl);
         } elseif(!file_exists($feedFile) or filemtime($feedFile) < (time() - $this->configService->getCacheMaxAge())) {
@@ -80,33 +80,33 @@ class FeedService
         if (null === $this->configService->getStoragePath()) {
             throw new \RuntimeException('No storage configured');
         }
-        $oldFile = $this->configService->getStoragePath() . $this->configService->getFeedFileName();
-        $newFile = $this->configService->getStoragePath() . 'new-'. $this->configService->getFeedFileName();
-        StorageHelper::removeFile($newFile);
-        CurlHelper::getFeedWithCurl($feedUrl, $newFile);
-        $output = $this->formatFeed($newFile);
+        $baseFileName = $this->configService->getFeedFileName();
+        $jsonFile = $this->configService->getStoragePath() . $baseFileName . '.json';
+        $rawXmlDataFile = $this->configService->getStoragePath() . $baseFileName . '.rss';
+        StorageHelper::removeFile($rawXmlDataFile);
+        CurlHelper::getFeedWithCurl($feedUrl, $rawXmlDataFile);
+        $feedData = $this->formatFeed($rawXmlDataFile);
         try {
-            $json = json_encode($output);
-            StorageHelper::removeFile($oldFile);
-            file_put_contents($oldFile, $json);
+            StorageHelper::removeFile($jsonFile);
+            file_put_contents($jsonFile, json_encode($feedData));
         } catch (Exception $exception) {
             throw new \RuntimeException('Cannot save response', 500, $exception);
         }
     }
 
     /**
-     * @param string $scrFile
+     * @param string $rawXmlDataFile
      * @return array<int, array<string, mixed>>
      * @throws Exception thrown on parse errors
      */
-    private function formatFeed(string $scrFile): array
+    private function formatFeed(string $rawXmlDataFile): array
     {
         $output = [];
-        $xml = simplexml_load_file($scrFile);
+        $xml = simplexml_load_file($rawXmlDataFile);
         if ($xml === false) {
             throw new Exception(sprintf(
                 'FeedService error: Unable to parse XML contents of %s.',
-                $scrFile
+                $rawXmlDataFile
             ));
         }
         $entries = $xml->channel->item;

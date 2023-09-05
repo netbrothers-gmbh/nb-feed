@@ -35,6 +35,7 @@ $feedUrl = 'https://www.heise.de/security/rss/alert-news.rdf';
 
 // Initialize `ConfigService`
 $configService = new ConfigService();
+// $configService->setMaxEntriesToSave(1);
 $configService->setStoragePath(__DIR__ . '/../tmp');
 $configService->setFeedFileName('heise-security');
 $configService->setCacheMaxAge(300);

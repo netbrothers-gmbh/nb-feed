@@ -17,11 +17,9 @@ use NetBrothers\NbFeed\Helper\StorageHelper;
  */
 class ConfigService
 {
-    /** How many items to save
+    /** number of items to save
      *
      * set to 0 to save all
-     *
-     * @var int
      */
     private int $maxEntriesToSave = 0;
 
@@ -33,60 +31,42 @@ class ConfigService
      */
     private int $cacheMaxAge = 1800;
 
-    /** Storage-Path for saving files
-     *
-     * @var string|null
-     */
+    /** @var string|null Storage-Path for saving files */
     private ?string $storagePath = null;
 
-    /**
-     * @var string
-     */
     private string $feedFileName = 'nb-feed';
 
-    /**
-     * @return int
-     */
     public function getMaxEntriesToSave(): int
     {
         return $this->maxEntriesToSave;
     }
 
-    /**
-     * @param int $maxEntriesToSave
-     */
     public function setMaxEntriesToSave(int $maxEntriesToSave): void
     {
         $this->maxEntriesToSave = $maxEntriesToSave;
     }
 
-    /**
-     * @return int
-     */
     public function getCacheMaxAge(): int
     {
         return $this->cacheMaxAge;
     }
 
-    /**
-     * @param int $cacheMaxAge
-     */
     public function setCacheMaxAge(int $cacheMaxAge): void
     {
         $this->cacheMaxAge = $cacheMaxAge;
     }
 
-    /**
-     * @return string|null
-     */
-    public function getStoragePath(): ?string
+    public function getStoragePath(): string
     {
+        if ($this->storagePath === null) {
+            throw new \RuntimeException('Storage path ist not initialized yet.');
+        }
         return $this->storagePath;
     }
 
     /**
      * @param string $storagePath
-     * @throws \RuntimeException
+     * @throws \RuntimeException thrown on I/O errors
      */
     public function setStoragePath(string $storagePath): void
     {
@@ -94,7 +74,7 @@ class ConfigService
     }
 
     /**
-     * @return string
+     * @return string target file name without file extension
      */
     public function getFeedFileName(): string
     {
@@ -102,7 +82,7 @@ class ConfigService
     }
 
     /**
-     * @param string $feedFileName
+     * @param string $feedFileName target file name without file extension
      */
     public function setFeedFileName(string $feedFileName): void
     {
