@@ -37,11 +37,11 @@ class FeedService
     public function getFeed(string $feedUrl, bool $useCache = true): array
     {
         $feedFile = $this->writeFeedToDisk($feedUrl, $useCache);
+        $feedContent = file_get_contents($feedFile);
         $parseErrorMsg = sprintf(
             'FeedService error: Unable to parse contents of %s.',
             $feedFile
         );
-        $feedContent = file_get_contents($feedFile);
         if ($feedContent === false) {
             throw new Exception($parseErrorMsg);
         }
@@ -52,21 +52,27 @@ class FeedService
         return $result;
     }
 
-    /** get Feed from Server and save
-     *
+    /**
+     * Get feed from server **if necessary** and save to disk.
+     * 
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
      * @return string file path of the JSON file with the new content
      * @throws Exception thrown on parse errors
      */
-    public function writeFeedToDisk(string $feedUrl, bool $useCache = true): string
+    private function writeFeedToDisk(string $feedUrl, bool $useCache): string
     {
         $feedFile = $this->configService->getStoragePath() . $this->configService->getFeedFileName() . '.json';
         if (true !== $useCache) {
+            // force refresh
             $this->saveFeedFromExtern($feedUrl);
-        } elseif(!file_exists($feedFile) or filemtime($feedFile) < (time() - $this->configService->getCacheMaxAge())) {
+        } elseif (
+            !file_exists($feedFile)
+            or filemtime($feedFile) < (time() - $this->configService->getCacheMaxAge())
+        ) {
+            // refresh while necessary
             $this->saveFeedFromExtern($feedUrl);
-        }
+        } // else: do not refresh
         return $feedFile;
     }
 
@@ -77,9 +83,6 @@ class FeedService
      */
     private function saveFeedFromExtern(string $feedUrl): void
     {
-        if (null === $this->configService->getStoragePath()) {
-            throw new \RuntimeException('No storage configured');
-        }
         $baseFileName = $this->configService->getFeedFileName();
         $jsonFile = $this->configService->getStoragePath() . $baseFileName . '.json';
         $rawXmlDataFile = $this->configService->getStoragePath() . $baseFileName . '.rss';
