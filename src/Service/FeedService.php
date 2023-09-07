@@ -54,7 +54,7 @@ class FeedService
 
     /**
      * Get feed from server **if necessary** and save to disk.
-     * 
+     *
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
      * @return string file path of the JSON file with the new content
