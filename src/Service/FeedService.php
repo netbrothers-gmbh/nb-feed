@@ -76,7 +76,7 @@ class FeedService
      *     link: string,
      *     permaLink: string,
      *     pubDate: int }>
-     * @throws InvalidHttpClientException 
+     * @throws InvalidHttpClientException
      * @throws LaminasFeedReaderRuntimeException
      * @phpstan-ignore-next-line missingType.iterableValue This concerns authors (iterable) but we have to rely on the feed reader spec.
      */
@@ -147,7 +147,7 @@ class FeedService
      * If necessary get feed from the remote source and, transform in into
      * the nb-feed JSON format and save it to disk, otherwise (cached result is
      * still good) return content directly from disk.
-     * 
+     *
      * @param string $feedUrl the feed URL
      * @param bool $useCache enable or disable cache
      * @return string file path of the JSON file with the updated content
