@@ -5,7 +5,7 @@ on:
     branches:
       - main
 jobs:
-  build:
+  build_php81:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,3 +23,58 @@ jobs:
           --dry-run
           --diff
           --using-cache=no
+  build_php82:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: "8.2"
+      - name: Run PHPStan
+        uses: php-actions/phpstan@v3
+        with:
+          configuration: phpstan.dist.neon
+          php_version: "8.2"
+      - name: Run PHP Coding Standards Fixer
+        run: ./vendor/bin/php-cs-fixer fix
+          --dry-run
+          --diff
+          --using-cache=no
+  build_php83:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: "8.3"
+      - name: Run PHPStan
+        uses: php-actions/phpstan@v3
+        with:
+          configuration: phpstan.dist.neon
+          php_version: "8.3"
+      - name: Run PHP Coding Standards Fixer
+        run: ./vendor/bin/php-cs-fixer fix
+          --dry-run
+          --diff
+          --using-cache=no
+  build_php84:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        uses: php-actions/composer@v6
+        with:
+          php_version: "8.4"
+      - name: Run PHPStan
+        uses: php-actions/phpstan@v3
+        with:
+          configuration: phpstan.dist.neon
+          php_version: "8.4"
+      - name: Run PHP Coding Standards Fixer
+        run: ./vendor/bin/php-cs-fixer fix
+          --dry-run
+          --diff
+          --using-cache=no
+
