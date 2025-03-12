@@ -38,7 +38,7 @@ class CurlHelper
             ));
         }
         curl_setopt($ch, CURLOPT_FILE, $fp);
-        curl_setopt($ch, CURLOPT_HEADER, 0);
+        curl_setopt($ch, CURLOPT_HEADER, false);
         curl_exec($ch);
         if (curl_error($ch)) {
             throw new Exception('cURL error: ' . curl_error($ch));

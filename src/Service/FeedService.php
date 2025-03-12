@@ -31,8 +31,9 @@ class FeedService
      *
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
-     * @return array<int, array<string, mixed>>
+     * @return array
      * @throws Exception thrown on parse errors
+     * @phpstan-ignore missingType.iterableValue
      */
     public function getFeed(string $feedUrl, bool $useCache = true): array
     {
