@@ -1,7 +1,7 @@
 {
   "name": "netbrothers-gmbh/nb-feed",
-  "description": "Get RSS-Feeds and save to json",
-  "keywords": ["rss"],
+  "description": "Fetch RSS- and Atom-Feeds and save to JSON",
+  "keywords": ["rss", "atom"],
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -26,7 +26,7 @@
     }
   },
   "require-dev": {
-    "phpstan/phpstan": "^1.10",
-    "friendsofphp/php-cs-fixer": "^3.19"
+    "phpstan/phpstan": "^2",
+    "friendsofphp/php-cs-fixer": "^3"
   }
 }

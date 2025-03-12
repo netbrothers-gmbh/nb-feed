@@ -114,10 +114,10 @@ class FeedService
         }
         $entries = $xml->channel->item;
         $counter = 0;
-        foreach($entries as $root) {
+        foreach ($entries as $root) {
             if (0 < $this->configService->getMaxEntriesToSave()) {
                 $counter++;
-                if($counter > $this->configService->getMaxEntriesToSave()) {
+                if ($counter > $this->configService->getMaxEntriesToSave()) {
                     break;
                 }
             }
