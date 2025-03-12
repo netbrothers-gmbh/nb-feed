@@ -18,7 +18,6 @@ jobs:
         with:
           configuration: phpstan.dist.neon
           php_version: "8.1"
-          php_extensions: curl json simplexml
       - name: Run PHP Coding Standards Fixer
         run: ./vendor/bin/php-cs-fixer fix
           --dry-run
