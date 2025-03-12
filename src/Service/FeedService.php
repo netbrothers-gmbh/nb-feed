@@ -9,141 +9,171 @@
 
 namespace NetBrothers\NbFeed\Service;
 
-use Exception;
+use Laminas\Feed\Reader\Entry\EntryInterface;
+use Laminas\Feed\Reader\Exception\InvalidHttpClientException;
+use Laminas\Feed\Reader\Exception\RuntimeException as LaminasFeedReaderRuntimeException;
+use Laminas\Feed\Reader\Reader;
+use NetBrothers\NbFeed\Adapter\HttpClientAdapter;
 use NetBrothers\NbFeed\Helper\StorageHelper;
-use NetBrothers\NbFeed\Helper\CurlHelper;
-use SimpleXMLElement;
 
-/**
- * Class FeedService
- * @package NetBrothers\NbFeed\Service
- */
+use function file_exists;
+
 class FeedService
 {
-    private ConfigService $configService;
-
-    public function __construct(ConfigService $configService)
+    public function __construct(private ConfigService $configService)
     {
-        $this->configService = $configService;
     }
 
-    /** get Feed as array
+    /**
+     * Get feed content as array.
      *
      * @param string $feedUrl use url to fetch feed
      * @param bool $useCache use cache
-     * @return array
-     * @throws Exception thrown on parse errors
-     * @phpstan-ignore missingType.iterableValue
+     * @return array<int, array{
+     *     authors: null|iterable,
+     *     content: string,
+     *     dateCreated: null|int,
+     *     dateModified: null|int,
+     *     description: string,
+     *     title: string,
+     *     link: string,
+     *     permaLink: string,
+     *     pubDate: int }>
+     * @throws \Exception on deserialisation errors while reading cached data from disk
+     * @throws \RuntimeException on errors while removing the cache file
+     * @throws InvalidHttpClientException feed reader exception
+     * @throws LaminasFeedReaderRuntimeException feed reader exception
+     * @phpstan-ignore-next-line missingType.iterableValue This concerns authors (iterable) but we have to rely on the feed reader spec.
      */
     public function getFeed(string $feedUrl, bool $useCache = true): array
     {
-        $feedFile = $this->writeFeedToDisk($feedUrl, $useCache);
+        $feedFile = $this->refreshFeed($feedUrl, $useCache);
         $feedContent = file_get_contents($feedFile);
         $parseErrorMsg = sprintf(
             'FeedService error: Unable to parse contents of %s.',
             $feedFile
         );
         if ($feedContent === false) {
-            throw new Exception($parseErrorMsg);
+            throw new \Exception($parseErrorMsg);
         }
         $result = json_decode($feedContent, true);
         if (!is_array($result)) {
-            throw new Exception($parseErrorMsg);
+            throw new \Exception($parseErrorMsg);
         }
+        // @phpstan-ignore-next-line return.type We have to rely on the fact that the deserialised JSON data is returned as once serialised.
         return $result;
     }
 
     /**
-     * Get feed from server **if necessary** and save to disk.
-     *
-     * @param string $feedUrl use url to fetch feed
-     * @param bool $useCache use cache
-     * @return string file path of the JSON file with the new content
-     * @throws Exception thrown on parse errors
-     */
-    private function writeFeedToDisk(string $feedUrl, bool $useCache): string
-    {
-        $feedFile = $this->configService->getStoragePath() . $this->configService->getFeedFileName() . '.json';
-        if (true !== $useCache) {
-            // force refresh
-            $this->saveFeedFromExtern($feedUrl);
-        } elseif (
-            !file_exists($feedFile)
-            or filemtime($feedFile) < (time() - $this->configService->getCacheMaxAge())
-        ) {
-            // refresh while necessary
-            $this->saveFeedFromExtern($feedUrl);
-        } // else: do not refresh
-        return $feedFile;
-    }
-
-    /**
      * @param string $feedUrl
-     * @return void
-     * @throws \RuntimeException | Exception
+     * @return array<int, array{
+     *     authors: null|iterable,
+     *     content: string,
+     *     dateCreated: null|int,
+     *     dateModified: null|int,
+     *     description: string,
+     *     title: string,
+     *     link: string,
+     *     permaLink: string,
+     *     pubDate: int }>
+     * @throws InvalidHttpClientException 
+     * @throws LaminasFeedReaderRuntimeException
+     * @phpstan-ignore-next-line missingType.iterableValue This concerns authors (iterable) but we have to rely on the feed reader spec.
      */
-    private function saveFeedFromExtern(string $feedUrl): void
+    private function fetchFromRemote(string $feedUrl): array
     {
-        $baseFileName = $this->configService->getFeedFileName();
-        $jsonFile = $this->configService->getStoragePath() . $baseFileName . '.json';
-        $rawXmlDataFile = $this->configService->getStoragePath() . $baseFileName . '.rss';
-        StorageHelper::removeFile($rawXmlDataFile);
-        CurlHelper::getFeedWithCurl($feedUrl, $rawXmlDataFile);
-        $feedData = $this->formatFeed($rawXmlDataFile);
-        try {
-            StorageHelper::removeFile($jsonFile);
-            file_put_contents($jsonFile, json_encode($feedData));
-        } catch (Exception $exception) {
-            throw new \RuntimeException('Cannot save response', 500, $exception);
-        }
-    }
-
-    /**
-     * @param string $rawXmlDataFile
-     * @return array<int, array<string, mixed>>
-     * @throws Exception thrown on parse errors
-     */
-    private function formatFeed(string $rawXmlDataFile): array
-    {
-        $output = [];
-        $xml = simplexml_load_file($rawXmlDataFile);
-        if ($xml === false) {
-            throw new Exception(sprintf(
-                'FeedService error: Unable to parse XML contents of %s.',
-                $rawXmlDataFile
-            ));
-        }
-        $entries = $xml->channel->item;
+        Reader::setHttpClient(new HttpClientAdapter());
         $counter = 0;
-        foreach ($entries as $root) {
-            if (0 < $this->configService->getMaxEntriesToSave()) {
-                $counter++;
-                if ($counter > $this->configService->getMaxEntriesToSave()) {
-                    break;
-                }
+        $isLimited = $this->configService->hasMaxEntriesDefined();
+        $limit = $this->configService->getMaxEntriesToSave();
+        $data = [];
+        foreach (Reader::import($feedUrl) as $entry) {
+            if ($isLimited && ++$counter > $limit) {
+                break;
             }
-            $output[] = $this->formatXmlEntry($root);
+            if (! $entry instanceof EntryInterface) {
+                break;
+            }
+            /**
+             * Structure of the legacy array shape:
+             * {
+             *     title: string,
+             *     pubDate: int,
+             *     link: string,
+             *     permaLink: string,
+             *     content: string
+             * }
+             *
+             * Structure of the new array shape:
+             * {
+             *     authors: null|iterable,  // **NEW**
+             *     content: string,         // **CHANGED** (actual content)
+             *     dateCreated: int,        // **NEW**
+             *     dateModified: int,       // **NEW**
+             *     description: string,     // **NEW** (actual description)
+             *     title: string,
+             *     link: string,
+             *     permaLink: string,
+             *     pubDate: int,            // **DEPRECATED**
+             * }
+             */
+            $item = [
+                'authors' => $entry->getAuthors(),
+                'content' => $entry->getContent(),
+                'dateCreated' => $entry->getDateCreated()?->getTimestamp(),
+                'dateModified' => $entry->getDateModified()?->getTimestamp(),
+                'description' => $entry->getDescription(),
+                'link' => $entry->getLink(),
+                'permaLink' => $entry->getPermalink(),
+                'pubDate' => $entry->getDateModified()?->getTimestamp() ?? 0,
+                'title' => $entry->getTitle(),
+            ];
+            $data[] = $item;
         }
-        return $output;
+        return $data;
+    }
+
+    private function getFeedStoragePath(): string
+    {
+        return sprintf(
+            '%s%s%s',
+            $this->configService->getStoragePath(),
+            $this->configService->getFeedFileName(),
+            '.json'
+        );
     }
 
     /**
-     * @param SimpleXMLElement $element
-     * @return array<string, mixed>
+     * If necessary get feed from the remote source and, transform in into
+     * the nb-feed JSON format and save it to disk, otherwise (cached result is
+     * still good) return content directly from disk.
+     * 
+     * @param string $feedUrl the feed URL
+     * @param bool $useCache enable or disable cache
+     * @return string file path of the JSON file with the updated content
+     * @throws \RuntimeException storage helper (remove file)
+     * @throws InvalidHttpClientException (feed reader)
+     * @throws LaminasFeedReaderRuntimeException (feed reader)
      */
-    private function formatXmlEntry(SimpleXMLElement $element): array
+    private function refreshFeed(string $feedUrl, bool $useCache): string
     {
-        $output = [
-            'title' => (string) $element->title,
-            'pubDate' => strtotime($element->pubDate),
-            'link' => (string) $element->link,
-            'permaLink' => null,
-            'content' => (string) $element->description
-        ];
-        $guid = $element->guid;
-        if ($guid && $guid['isPermaLink'] && boolval($guid['isPermaLink']) === true) {
-            $output['permaLink'] = (string) $guid;
+        $feedFile = $this->getFeedStoragePath();
+
+        /**
+         * If the cache is disabled or the feed file has been deleted or is
+         * older than max age, we will fetch the feed from the remote source,
+         */
+        if (
+            !$useCache
+            || !file_exists($feedFile)
+            || filemtime($feedFile) < (time() - $this->configService->getCacheMaxAge())
+        ) {
+            $feedData = $this->fetchFromRemote($feedUrl);
+            $feedFile = $this->getFeedStoragePath();
+            StorageHelper::removeFile($feedFile);
+            file_put_contents($feedFile, json_encode($feedData));
         }
-        return $output;
+        // otherwise we use the local version.
+        return $feedFile;
     }
 }

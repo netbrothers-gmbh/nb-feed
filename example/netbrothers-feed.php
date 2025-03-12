@@ -31,9 +31,9 @@ if (file_exists($libModeAutoload)) {
  */
 
 // URL RSS-Feed (required)
-$feedUrl = 'https://www.heise.de/security/rss/alert-news.rdf';
+$feedUrl = 'https://www.heise.de/security/Alerts/feed.xml';
 
-// Initialize `ConfigService`
+// initialize config service
 $configService = new ConfigService();
 // $configService->setMaxEntriesToSave(1);
 $configService->setStoragePath(__DIR__ . '/../tmp');

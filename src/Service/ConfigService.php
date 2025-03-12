@@ -41,6 +41,11 @@ class ConfigService
         return $this->maxEntriesToSave;
     }
 
+    public function hasMaxEntriesDefined(): bool
+    {
+        return $this->getMaxEntriesToSave() > 0;
+    }
+
     public function setMaxEntriesToSave(int $maxEntriesToSave): void
     {
         $this->maxEntriesToSave = $maxEntriesToSave;
